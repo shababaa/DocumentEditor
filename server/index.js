@@ -77,7 +77,7 @@ function joinRoom(docId, ws) {
 }
 function leaveRoom(docId, ws) {
     const room = rooms.get(docId)
-    if(!room) return
+    if (!room) return
     room.delete(ws)
     if (room.size === 0) {
         rooms.delete(docId)
@@ -87,9 +87,14 @@ function leaveRoom(docId, ws) {
 function broadcast(docId, senderWs, messageString) {
     const room = rooms.get(docId)
     if (!room) return
+
     for (const client of room) {
+        // client is a ws object
         if (client === senderWs) continue
-        
+        if (client.readyState === 1) {
+            client.send(messageString)
+        }
+        console.log(`message sent to ${docId}`)
     }
 }
 
@@ -106,21 +111,21 @@ wss.on("connection", (ws, req) => {
     // req.headers.host for example is localhost:5000
     // now we can parse the URL to get the docId
     const docId = url.searchParams.get("docId")
+    
     if (!docId) {
         ws.close(1008, "docId required")
         return
     }
+    joinRoom(docId, ws)
+
+    ws.on("message", (data) => {
+        const messageString = data.toString()
+
+        broadcast(docId, ws, messageString) // send the message to all clients in the room (doc)
+    })
+    ws.on("close", () => {
+        leaveRoom(docId, ws)
+        console.log(`client disconnected from doc ${docId}`)
+    })
 })
-
-
-// wss.on("connection", (ws, req) => {
-//     const url = new URL(req.url, `http://${req.headers.host}`)
-//     const docId = url.searchParams.get("docId")
-
-//     if(!docId) {
-//         ws.close(1008, "docId required");
-//         return; // return to close the connection
-//     }
-//     rooms.set(docId, ws)
-// })
 
