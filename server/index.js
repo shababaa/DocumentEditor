@@ -68,6 +68,31 @@ const server = app.listen(PORT, ()=> console.log(`API listening on ${PORT}`))
 const wss = new WebSocketServer({ server, path: "/ws" })
 // the path is what the client will connect to (ws://localhost:5000/ws...)
 
+// helper functions
+function joinRoom(docId, ws) {
+    const room = rooms.get(docId) ?? new Set()
+    room.add(ws)
+    rooms.set(docId, room)
+    return room
+}
+function leaveRoom(docId, ws) {
+    const room = rooms.get(docId)
+    if(!room) return
+    room.delete(ws)
+    if (room.size === 0) {
+        rooms.delete(docId)
+    }
+}
+
+function broadcast(docId, senderWs, messageString) {
+    const room = rooms.get(docId)
+    if (!room) return
+    for (const client of room) {
+        if (client === senderWs) continue
+        
+    }
+}
+
 const rooms = new Map() // docId -> Set<ws>
 
 
@@ -80,7 +105,11 @@ wss.on("connection", (ws, req) => {
     // req.url is the full URL of the request like /docs?docId=123
     // req.headers.host for example is localhost:5000
     // now we can parse the URL to get the docId
-    
+    const docId = url.searchParams.get("docId")
+    if (!docId) {
+        ws.close(1008, "docId required")
+        return
+    }
 })
 
 
