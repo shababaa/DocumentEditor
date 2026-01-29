@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import CodeMirror from "@uiw/react-codemirror"
 import { markdown } from "@codemirror/lang-markdown"
 
@@ -14,6 +14,8 @@ export default function EditorPage() {
 
     const {id} = useParams()
 
+
+    // TODO: remove later if needed
     useEffect(() => {
         async function getContent() {
             const res = await fetch(`http://localhost:5000/documents/${id}`, {
@@ -45,7 +47,7 @@ export default function EditorPage() {
         }, 1000) // Wait 1 second after user stops typing
         
         return () => clearTimeout(timer) // Cleanup timer if content changes again
-    }, [content, id])
+    }, [content, id, document])
     
     function saveToContent(e) {
         e.preventDefault()

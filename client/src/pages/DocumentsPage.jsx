@@ -5,9 +5,10 @@ import { useNavigate, useLocation } from "react-router-dom"
 export default function DocumentsPage() {
     const [title, setTitle] = useState('')
     const [docs, setDocs] = useState([])
-    const [documents, setDocuments] = useState()
     const navigate = useNavigate()
     const location = useLocation()
+    
+    // TODO: remove later if needed
     useEffect(() => {
         getDocuments().then(setDocs)
     }, [location])
@@ -58,7 +59,7 @@ export default function DocumentsPage() {
                         <h2 className="card-title">{d.title}</h2>
                         <p>{d.updatedAt}</p>
                         <div className="card-actions justify-end">
-                        <button className="btn btn-primary" onClick={() => navigate(`/doc/${d.id}`, {title: d.title, content:d.content, updatedAt:d.updatedAt})}>Open</button>
+                        <button className="btn btn-primary" onClick={() => navigate(`/doc/${d.id}`)}>Open</button>
                         </div>
                     </div>
                 </div>

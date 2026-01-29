@@ -25,11 +25,6 @@ app.get("/documents", async (req, res) => {
     res.json(documents)
 })
 
-app.get("/documents/id", async (req, res) => {
-    const id = await getId()
-
-})
-
 app.get("/documents/:id", async (req, res) => {
     const {id} = req.params
     const data = await getDocument(id)
@@ -50,10 +45,10 @@ app.post("/documents", async (req, res) => {
         const {title, content=""} = req.body
         if (!title) return res.status(400).json({ok: false, error: "title is required" })
         const id = uuidv4()
-        await createDocument(id, title, content)
-        return res.status(201).json({ ok: true, id })
+        const doc = await createDocument(id, title, content)
+        return res.status(201).json({ ok: true, doc })
     } catch (err) {
-        console.err(err)
+        console.error(err)
         return res.status(500).json({ok: false, error: "Failed to create document"})
     }
 })
