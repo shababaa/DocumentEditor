@@ -9,10 +9,10 @@ export default function EditorPage() {
 
     // const API = import.meta.env.VITE_API_BASE || "http://localhost:5000"
     
-    const {id} = useParams()
-    
     const [document, setDocument] = useState(null)
     const [content, setContent] = useState("")
+
+    const {id} = useParams()
 
     useEffect(() => {
         async function getContent() {
