@@ -13,7 +13,7 @@ export default function DocumentsPage() {
     }, [location])
 
     async function createDocument(title) {
-        const res = await fetch('http://localhost:5000/documents', {
+        const res = await fetch('http://localhost:5001/documents', {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({title, content: ""})
@@ -30,7 +30,7 @@ export default function DocumentsPage() {
     }
 
     async function getDocuments() {
-        const res = await fetch('http://localhost:5000/documents', {
+        const res = await fetch('http://localhost:5001/documents', {
             method: "GET",
             headers: {"Content-Type":"application/json"}
         })
