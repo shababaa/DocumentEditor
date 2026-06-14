@@ -3,6 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { nord } from "@uiw/codemirror-theme-nord";
 import { useDocument } from "../hooks/useDocument";
+import { useDocumentSocket } from "../hooks/useDocumentSocket";
 
 export default function EditorPage() {
   const { id } = useParams();
@@ -15,6 +16,13 @@ export default function EditorPage() {
     error,
     saveStatus,
   } = useDocument(id);
+
+  useDocumentSocket({
+    id,
+    content,
+    setContent,
+    enabled: !!document,
+  })
 
   if (loading) return <h1>Loading document...</h1>;
   if (error) return <h1>{error}</h1>;

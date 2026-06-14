@@ -1,12 +1,14 @@
 import { createApp } from "./app.js";
 import { config } from "./config.js";
+import { attachWs } from "./ws/wsServer.js";
 
 const app = createApp();
-app.listen(config.PORT, () => {
+
+const server = app.listen(config.PORT, () => {
   console.log(`API listening on ${config.PORT}`);
 });
 
-
+attachWs(server)
 
 
 // import express from "express"
