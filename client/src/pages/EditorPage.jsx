@@ -1,32 +1,57 @@
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { nord } from "@uiw/codemirror-theme-nord";
+import { yCollab } from "y-codemirror.next";
 import { useDocument } from "../hooks/useDocument";
 import { useDocumentSocket } from "../hooks/useDocumentSocket";
+import { addDocumentMember } from "../api/documents.js";
 
 export default function EditorPage() {
   const { id } = useParams();
-
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberRole, setMemberRole] = useState("editor");
+  const [shareStatus, setShareStatus] = useState(null);
+  const { document, loading, error: loadError } = useDocument(id);
   const {
-    document,
-    content,
-    setContent,
-    loading,
-    error,
+    ydoc,
+    ytext,
+    undoManager,
+    ready,
+    connectionStatus,
     saveStatus,
-  } = useDocument(id);
-
-  useDocumentSocket({
+    error: collaborationError,
+  } = useDocumentSocket({
     id,
-    content,
-    setContent,
     enabled: !!document,
-  })
+    canEdit: document?.role === "owner" || document?.role === "editor",
+  });
+
+  const collaborationExtension = useMemo(() => {
+    if (!ytext || !undoManager) return null;
+    return yCollab(ytext, null, { undoManager });
+  }, [ytext, undoManager]);
 
   if (loading) return <h1>Loading document...</h1>;
-  if (error) return <h1>{error}</h1>;
+  if (loadError) return <h1>{loadError}</h1>;
   if (!document) return <h1>Document not found</h1>;
+  if (collaborationError && !ready) return <h1>{collaborationError}</h1>;
+  if (!ready || !ytext || !collaborationExtension) {
+    return <h1>Connecting to collaborative document...</h1>;
+  }
+
+  async function handleAddMember(event) {
+    event.preventDefault();
+    setShareStatus("Sharing...");
+    try {
+      await addDocumentMember(id, memberEmail, memberRole);
+      setMemberEmail("");
+      setShareStatus("Member added");
+    } catch (shareError) {
+      setShareStatus(shareError.message);
+    }
+  }
 
   return (
     <div>
@@ -34,84 +59,45 @@ export default function EditorPage() {
 
       <header>
         <h1>{document.title}</h1>
-        <p>{saveStatus}</p>
+        <p>{saveStatus} · {connectionStatus}</p>
+        {collaborationError && <p>{collaborationError}</p>}
       </header>
 
+      {document.role === "owner" && (
+        <form onSubmit={handleAddMember}>
+          <input
+            type="email"
+            value={memberEmail}
+            onChange={(event) => setMemberEmail(event.target.value)}
+            placeholder="Member email"
+            required
+          />
+          <select
+            value={memberRole}
+            onChange={(event) => setMemberRole(event.target.value)}
+          >
+            <option value="editor">Editor</option>
+            <option value="viewer">Viewer</option>
+          </select>
+          <button type="submit">Add member</button>
+          {shareStatus && <span>{shareStatus}</span>}
+        </form>
+      )}
+
       <CodeMirror
-        value={content}
-        extensions={[markdown()]}
+        key={`${id}-${ydoc.clientID}`}
+        value={ytext.toString()}
+        editable={document.role !== "viewer"}
+        extensions={[markdown(), collaborationExtension]}
         height="calc(100vh - 160px)"
-        onChange={(value) => setContent(value)}
         basicSetup={{
           lineNumbers: true,
           highlightActiveLine: true,
           foldGutter: true,
+          history: false,
         }}
         theme={nord}
       />
     </div>
   );
 }
-    // TODO: remove later if needed
-    // useEffect(() => {
-    //     async function getContent() {
-    //         const res = await fetch(`${API}/documents/${id}`, {
-    //         method: "GET",
-    //         headers: {"Content-Type":"application/json"},
-    //         credentials: "include"
-    //     })
-    //     if (!res.ok) throw new Error("failed to load")
-    //     return res.json()
-    // }
-    //     getContent().then((data)=>{
-    //         setDocument(data)
-    //         setContent(data.content ?? "")
-    //     }).catch((err)=>console.error(err))
-    // }, [id])
-    
-
-
-    // useEffect(() => {
-    //     const timer = setTimeout(async () => {
-    //         if (!document) return
-    //         const res = await fetch(`${API}/documents/${id}/content`, {
-    //             method: "PUT",
-    //             headers: {"Content-Type":"application/json"},
-    //             credentials: "include",
-    //             body: JSON.stringify({content})
-    //         })
-    //         if (!res.ok) throw new Error("save failed")
-    //     }, 1000) // Wait 1 second after user stops typing
-        
-    //     return () => clearTimeout(timer) // Cleanup timer if content changes again
-    // }, [content, id, document])
-    
-    // function saveToContent(e) {
-    //     e.preventDefault()
-    //     // Content is auto-saved by the useEffect above
-    // }
-    
-    // if (!document) return <h1>Loading...</h1>
-    
-    // return (
-    //     <div className="">
-    //         <header className="title">{document.title}</header>
-    //         <form>
-    //             <CodeMirror 
-    //                 value={content}
-    //                 extensions={[markdown()]}
-    //                 height="calc(100vh - 160px)"
-    //                 onChange={(value) => setContent(value)}
-    //                 basicSetup={{
-    //                     lineNumbers: true,
-    //                     highlightActiveLine: true,
-    //                     foldGutter: true,
-    //                 }}
-    //                 theme={nord}
-    //                 align="left"
-    //             />
-    //             <button className="btn btn-primary bg-black" type= "submit" onClick={saveToContent}>Save</button>
-    //         </form>
-            
-    //     </div>
-    // )

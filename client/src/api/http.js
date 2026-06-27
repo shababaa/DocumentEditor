@@ -30,7 +30,10 @@ export async function apiFetch (path, options = {}) {
       (body && body.error) ||
       (typeof body === "string" && body) ||
       `Request failed with status ${res.status}`
-    throw new Error(message)
+    const error = new Error(message)
+    error.status = res.status
+    error.body = body
+    throw error
   }
 
   return body

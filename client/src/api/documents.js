@@ -34,3 +34,11 @@ export async function updateDocumentContent(id, content) {
 
   return res?.doc ?? res
 }
+
+export async function addDocumentMember(id, email, role) {
+  const safeId = encodeURIComponent(id)
+  return apiFetch(`/documents/${safeId}/members`, {
+    method: "POST",
+    body: JSON.stringify({ email, role }),
+  })
+}

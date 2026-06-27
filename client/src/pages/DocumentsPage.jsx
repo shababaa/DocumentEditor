@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from "react-router-dom"
 import { useDocuments } from "../hooks/useDocuments"
-
-const API = import.meta.env.VITE_API_BASE
+import { useAuth } from "../auth/authContext.js"
 
 
 export default function DocumentsPage() {
@@ -18,6 +17,12 @@ export default function DocumentsPage() {
 
     const [title, setTitle] = useState("")
     const navigate = useNavigate()
+    const { user, logout } = useAuth()
+
+    async function handleLogout() {
+        await logout()
+        navigate("/login", { replace: true })
+    }
     
     async function handleCreateDocument(e) {
         e.preventDefault();
@@ -34,6 +39,8 @@ export default function DocumentsPage() {
     return (
         <div>
             <h1>My Documents</h1>
+            <p>{user.email}</p>
+            <button type="button" onClick={handleLogout}>Log out</button>
 
             {error && <p>{error}</p>}
 

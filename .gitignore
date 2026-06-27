@@ -1,2 +1,11 @@
-node_modules
-.env
+node_modules/
+dist/
+out/
+*.vsix
+
+# Local environment files and secrets
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key

@@ -12,12 +12,6 @@ function loadDocs() {
 
 export let FAKE_DOCS = loadDocs()
 
-// Save docs to localStorage whenever they change
-function saveDocs() {
-    localStorage.setItem("FAKE_DOCS", JSON.stringify(FAKE_DOCS))
-}
-
-
 // export async function createDocument(title) {
 //     const id = `doc-${Math.random().toString(16).slice(2)}`
 //     const newDoc = {id, title, updatedAt: new Date().toISOString() }

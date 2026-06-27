@@ -1,14 +1,24 @@
 import { createApp } from "./app.js";
 import { config } from "./config.js";
 import { attachWs } from "./ws/wsServer.js";
+import { ensureAuthSchema, deleteExpiredSessions } from "./repositories/auth.repo.js";
 
-const app = createApp();
+async function startServer() {
+  await ensureAuthSchema();
+  await deleteExpiredSessions();
 
-const server = app.listen(config.PORT, () => {
-  console.log(`API listening on ${config.PORT}`);
+  const app = createApp();
+  const server = app.listen(config.PORT, () => {
+    console.log(`API listening on ${config.PORT}`);
+  });
+
+  attachWs(server);
+}
+
+startServer().catch((error) => {
+  console.error("Failed to start server", error);
+  process.exitCode = 1;
 });
-
-attachWs(server)
 
 
 // import express from "express"
@@ -136,4 +146,3 @@ attachWs(server)
 //         console.log(`client disconnected from doc ${docId}`)
 //     })
 // })
-

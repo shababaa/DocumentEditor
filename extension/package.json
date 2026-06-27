@@ -1,0 +1,50 @@
+{
+  "name": "docuedit",
+  "displayName": "DocuEdit",
+  "description": "Generate editable DocuEdit documentation from the active source file.",
+  "version": "0.1.0",
+  "publisher": "docuedit",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:docuedit.generateDocumentationFromCurrentFile"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "docuedit.generateDocumentationFromCurrentFile",
+        "title": "DocuEdit: Generate Documentation from Current File"
+      }
+    ],
+    "configuration": {
+      "title": "DocuEdit",
+      "properties": {
+        "docuedit.backendApiBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:5001",
+          "description": "Base URL for the DocuEdit backend API."
+        },
+        "docuedit.webAppBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:5173",
+          "description": "Base URL for the DocuEdit web application."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc -p ./ --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.2"
+  }
+}
