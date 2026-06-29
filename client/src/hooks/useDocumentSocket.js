@@ -30,6 +30,8 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
     connectionStatus: "connecting",
     saveStatus: "saved",
     error: null,
+    presence: [],
+    permissionRole: null,
   });
 
   const currentStatus = status.id === id
@@ -40,6 +42,8 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
         connectionStatus: "connecting",
         saveStatus: "saved",
         error: null,
+        presence: [],
+        permissionRole: null,
       };
 
   useEffect(() => {
@@ -52,6 +56,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
     let hasUnsavedLocalChanges = false;
     let reconnectTimer = null;
     let queuedUpdates = [];
+    let serverCanEdit = canEdit;
 
     function updateStatus(patch) {
       setStatus((previous) => ({
@@ -60,6 +65,8 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
           connectionStatus: "connecting",
           saveStatus: "saved",
           error: null,
+          presence: [],
+          permissionRole: null,
         }),
         id,
         ...patch,
@@ -67,7 +74,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
     }
 
     function syncLocalState() {
-      if (ws?.readyState !== WebSocket.OPEN) return;
+      if (!serverCanEdit || ws?.readyState !== WebSocket.OPEN) return;
 
       // A full state update is idempotent and also recovers edits whose socket
       // message may have been interrupted before the previous connection closed.
@@ -77,7 +84,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
 
     function handleLocalUpdate(update, origin) {
       if (origin === REMOTE_ORIGIN) return;
-      if (!canEdit) return;
+      if (!serverCanEdit) return;
       hasUnsavedLocalChanges = true;
       updateStatus({ saveStatus: "saving" });
 
@@ -98,6 +105,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
       }
 
       if (message.type === "sync-complete") {
+        if (message.role) serverCanEdit = ["owner", "editor"].includes(message.role);
         const hadPendingUpdates = hasUnsavedLocalChanges || queuedUpdates.length > 0;
         hasSynced = true;
         updateStatus({
@@ -105,6 +113,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
           connectionStatus: "connected",
           saveStatus: hadPendingUpdates ? "saving" : "saved",
           error: null,
+          permissionRole: message.role || null,
         });
         syncLocalState();
       } else if (message.type === "saved") {
@@ -115,6 +124,12 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
           saveStatus: "error",
           error: message.error || "Failed to save document.",
         });
+      } else if (message.type === "presence") {
+        updateStatus({ presence: Array.isArray(message.users) ? message.users : [] });
+      } else if (message.type === "permission-changed") {
+        serverCanEdit = ["owner", "editor"].includes(message.role);
+        if (!serverCanEdit) queuedUpdates = [];
+        updateStatus({ permissionRole: message.role, saveStatus: "saved" });
       }
     }
 
@@ -145,7 +160,7 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
       socket.onclose = (event) => {
         if (ws !== socket || disposed) return;
         hasSynced = false;
-        updateStatus({ connectionStatus: "disconnected", saveStatus: "saving" });
+        updateStatus({ connectionStatus: "disconnected", saveStatus: "saving", presence: [] });
 
         if (event.code === 1003 || event.code === 1008) {
           updateStatus({
@@ -174,6 +189,8 @@ export function useDocumentSocket({ id, enabled, canEdit = true }) {
     ready: currentStatus.ready,
     connectionStatus: currentStatus.connectionStatus,
     saveStatus: currentStatus.saveStatus,
+    presence: currentStatus.presence,
+    permissionRole: currentStatus.permissionRole,
     error: currentStatus.error,
   };
 }

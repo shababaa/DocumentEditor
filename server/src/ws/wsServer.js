@@ -9,6 +9,7 @@ import {
 } from "../repositories/documents.repo.js";
 import { authenticateRequest } from "../middleware/auth.middleware.js";
 import { config } from "../config.js";
+import { subscribeToPermissionChanges } from "../services/permissionEvents.service.js";
 
 const SAVE_DEBOUNCE_MS = 800;
 const ROOM_CLEANUP_DELAY_MS = 30_000;
@@ -32,6 +33,14 @@ function broadcastControl(room, message) {
   for (const client of room.clients) {
     sendControl(client, message);
   }
+}
+
+function broadcastPresence(room) {
+  const users = new Map();
+  for (const client of room.clients) {
+    if (client.documentUser) users.set(client.documentUser.id, client.documentUser);
+  }
+  broadcastControl(room, { type: "presence", users: [...users.values()] });
 }
 
 function broadcastUpdate(room, sender, update) {
@@ -59,6 +68,17 @@ export function attachWs(server, overrides = {}) {
       done(true);
     },
   });
+
+  const unsubscribe = subscribeToPermissionChanges(({ documentId, userId, role }) => {
+    const room = rooms.get(documentId);
+    if (!room) return;
+    for (const client of room.clients) {
+      if (client.documentUser?.id !== userId) continue;
+      client.documentRole = role;
+      sendControl(client, { type: "permission-changed", role });
+    }
+  });
+  wss.once("close", unsubscribe);
 
   async function persistRoom(room) {
     if (room.saveTimer) {
@@ -221,9 +241,11 @@ export function attachWs(server, overrides = {}) {
       }
       room.clients.add(ws);
       ws.documentRole = role;
+      ws.documentUser = { id: auth.user.id, email: auth.user.email };
 
       ws.send(Y.encodeStateAsUpdate(room.ydoc), { binary: true });
-      sendControl(ws, { type: "sync-complete" });
+      sendControl(ws, { type: "sync-complete", role });
+      broadcastPresence(room);
       console.log(
         `Yjs connected: doc=${docId}, user=${auth.user.id}, role=${role}, clients=${room.clients.size}`
       );
@@ -249,6 +271,7 @@ export function attachWs(server, overrides = {}) {
 
       ws.on("close", () => {
         room.clients.delete(ws);
+        broadcastPresence(room);
         console.log(
           `Yjs disconnected: doc=${docId}, user=${auth.user.id}, clients=${room.clients.size}`
         );

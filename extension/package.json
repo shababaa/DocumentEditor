@@ -1,7 +1,7 @@
 {
   "name": "docuedit",
   "displayName": "DocuEdit",
-  "description": "Generate editable DocuEdit documentation from the active source file.",
+  "description": "Generate editable DocuEdit documentation from files, folders, or an entire workspace.",
   "version": "0.1.0",
   "publisher": "docuedit",
   "engines": {
@@ -11,16 +11,52 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:docuedit.generateDocumentationFromCurrentFile"
+    "onCommand:docuedit.generateDocumentation",
+    "onCommand:docuedit.generateDocumentationFromCurrentFile",
+    "onCommand:docuedit.generateDocumentationFromExplorer",
+    "onCommand:docuedit.signIn",
+    "onCommand:docuedit.signOut"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
+        "command": "docuedit.generateDocumentation",
+        "title": "DocuEdit: Generate Documentation..."
+      },
+      {
         "command": "docuedit.generateDocumentationFromCurrentFile",
         "title": "DocuEdit: Generate Documentation from Current File"
+      },
+      {
+        "command": "docuedit.generateDocumentationFromExplorer",
+        "title": "DocuEdit: Generate Documentation from Selected Files"
+      },
+      {
+        "command": "docuedit.signIn",
+        "title": "DocuEdit: Sign In"
+      },
+      {
+        "command": "docuedit.signOut",
+        "title": "DocuEdit: Sign Out"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "docuedit.generateDocumentationFromExplorer",
+          "when": "resourceScheme == file",
+          "group": "navigation@100"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "docuedit.generateDocumentationFromCurrentFile",
+          "when": "editorTextFocus",
+          "group": "navigation@100"
+        }
+      ]
+    },
     "configuration": {
       "title": "DocuEdit",
       "properties": {

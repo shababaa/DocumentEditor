@@ -205,6 +205,47 @@ export async function addDocumentMember({ documentId, ownerUserId, email, role }
   }
 }
 
+export async function updateDocumentMemberRole({ documentId, ownerUserId, memberUserId, role }) {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    const [owners] = await connection.query(
+      "SELECT role FROM document_members WHERE document_id = ? AND user_id = ? FOR UPDATE",
+      [documentId, ownerUserId]
+    );
+    if (owners[0]?.role !== "owner") {
+      await connection.rollback();
+      return { status: "forbidden" };
+    }
+
+    const [members] = await connection.query(
+      "SELECT role FROM document_members WHERE document_id = ? AND user_id = ? FOR UPDATE",
+      [documentId, memberUserId]
+    );
+    if (!members[0]) {
+      await connection.rollback();
+      return { status: "not-found" };
+    }
+    if (members[0].role === "owner") {
+      await connection.rollback();
+      return { status: "owner-immutable" };
+    }
+
+    await connection.query(
+      "UPDATE document_members SET role = ? WHERE document_id = ? AND user_id = ?",
+      [role, documentId, memberUserId]
+    );
+    await connection.commit();
+    return { status: "ok" };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export async function getDocumentYjsState(id) {
   await ensureYjsStateTable();
   const [rows] = await pool.query(

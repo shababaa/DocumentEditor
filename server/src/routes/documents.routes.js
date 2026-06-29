@@ -7,6 +7,7 @@ import {
   handleUpdateContent,
   handleListMembers,
   handleAddMember,
+  handleUpdateMemberRole,
 } from "../controllers/documents.controller.js"
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -19,6 +20,7 @@ router.post("/", handleCreateDocument)
 router.post("/generate-from-code", handleGenerateFromCode)
 router.get("/:id/members", handleListMembers)
 router.post("/:id/members", handleAddMember)
+router.patch("/:id/members/:userId", handleUpdateMemberRole)
 router.get("/:id", handleGetDocument)
 
 // clear endpoint name for autosave

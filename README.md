@@ -1,12 +1,12 @@
 # DocuEdit
 
-DocuEdit is a collaborative Markdown editor with a VS Code extension that can turn the current source file (or selected code) into an editable document. Documents are stored in MySQL, autosaved from the React editor, and synchronized between open browser tabs with Yjs CRDT updates over WebSockets.
+DocuEdit is a collaborative Markdown editor with a VS Code extension that can turn selected code, files, folders, or an entire workspace into an editable document. Documents are stored in MySQL, autosaved from the React editor, and synchronized between open browser tabs with Yjs CRDT updates over WebSockets.
 
 ## Project structure
 
 - `client/` — React + Vite web app with `/documents` and `/doc/:id` routes.
 - `server/` — Express API, MySQL repository, document-generation service, and WebSocket server.
-- `extension/` — TypeScript VS Code extension that sends the current file or selection to the backend.
+- `extension/` — TypeScript VS Code extension that securely gathers selected workspace context and sends it to the backend.
 
 ## Prerequisites
 
@@ -131,13 +131,17 @@ The defaults are:
 1. Install extension dependencies with `npm --prefix extension install`.
 2. Open this repository root in VS Code.
 3. Press `F5` and choose **Run DocuEdit Extension** if prompted.
-4. In the Extension Development Host, open a source file.
-5. Optionally select only the code you want documented.
-6. Open the Command Palette and run **DocuEdit: Generate Documentation from Current File**.
+4. In the Extension Development Host, run **DocuEdit: Sign In** and use an account already created in the web app.
+5. Run **DocuEdit: Generate Documentation...** and choose one of:
+   - current file or selected code
+   - selected workspace files
+   - one or more folders
+   - the entire open workspace
+6. You can also select files/folders in the Explorer, right-click, and choose **DocuEdit: Generate Documentation from Selected Files**.
 
-The command sends the filename, VS Code language id, and selected code (or the complete active file) to `POST /documents/generate-from-code`. That endpoint now requires authentication and creates the generated document for the authenticated owner.
+The extension stores only the opaque DocuEdit session cookie in VS Code SecretStorage. It never stores the password or an AI API key. Non-local HTTP backends are rejected during sign-in; use HTTPS outside localhost.
 
-TODO: add a device-code or personal-access-token flow for the VS Code extension. Browser session cookies are intentionally not copied into the extension process, and no unauthenticated local-development bypass is provided. Until that flow exists, direct extension generation receives a clear authentication error; the backend generation endpoint can still be tested with an authenticated HTTP cookie.
+For multi-file input, the extension sends a bounded source manifest through the existing `POST /documents/generate-from-code` endpoint. It reads at most 120 text files, 120 KB per file, and roughly 420 KB total. Common dependency/build folders, binary files, `.env` files, keys, and obvious credential files are skipped. The backend creates the generated document for the signed-in user and the extension opens it in the web editor.
 
 ## Extension settings
 
@@ -145,6 +149,12 @@ These settings can be changed in VS Code Settings:
 
 - `docuedit.backendApiBaseUrl` — defaults to `http://localhost:5001`
 - `docuedit.webAppBaseUrl` — defaults to `http://localhost:5173`
+
+## Test extension generation without an AI key
+
+Leave `OPENAI_API_KEY` blank in `server/.env`. The deterministic generator will create a Markdown draft and list the files included in multi-file context, which lets you test authentication, file collection, document creation, browser opening, editing, autosave, and collaboration without paying for model calls.
+
+After that flow works, set `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in `server/.env`, restart the backend, and run the same extension command. Model credentials remain server-side.
 
 ## Manual end-to-end test
 

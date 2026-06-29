@@ -42,3 +42,18 @@ export async function addDocumentMember(id, email, role) {
     body: JSON.stringify({ email, role }),
   })
 }
+
+export async function listDocumentMembers(id) {
+  const safeId = encodeURIComponent(id)
+  const response = await apiFetch(`/documents/${safeId}/members`)
+  return response?.members ?? []
+}
+
+export async function updateDocumentMemberRole(id, userId, role) {
+  const safeId = encodeURIComponent(id)
+  const safeUserId = encodeURIComponent(userId)
+  return apiFetch(`/documents/${safeId}/members/${safeUserId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  })
+}

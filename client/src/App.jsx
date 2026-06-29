@@ -5,6 +5,7 @@ import DocumentsPage from "./pages/DocumentsPage";
 import EditorPage from "./pages/EditorPage";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 
 function protectedPage(page) {
   return <ProtectedRoute>{page}</ProtectedRoute>;
@@ -13,12 +14,12 @@ function protectedPage(page) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/documents" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Register />} />
       <Route path="/documents" element={protectedPage(<DocumentsPage />)} />
       <Route path="/doc/:id" element={protectedPage(<EditorPage />)} />
-      <Route path="*" element={<Navigate to="/documents" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

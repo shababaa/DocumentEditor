@@ -8,7 +8,9 @@ import {
   getDocumentRole,
   listDocumentMembers,
   addDocumentMember,
+  updateDocumentMemberRole,
 } from "../repositories/documents.repo.js";
+import { publishPermissionChange } from "../services/permissionEvents.service.js";
 import {
   DocumentGenerationError,
   generateDocumentation,
@@ -160,10 +162,41 @@ export async function handleListMembers(req, res, next) {
   try {
     const role = await getDocumentRole(req.params.id, req.user.id);
     if (!role) return res.status(404).json({ ok: false, error: "Not found" });
-    if (role !== "owner") {
-      return res.status(403).json({ ok: false, error: "Owner access required" });
+    const members = await listDocumentMembers(req.params.id);
+    return res.json({ ok: true, members });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function handleUpdateMemberRole(req, res, next) {
+  try {
+    const { role } = req.body ?? {};
+    if (!["editor", "viewer"].includes(role)) {
+      return res.status(400).json({ ok: false, error: "role must be editor or viewer" });
     }
 
+    const result = await updateDocumentMemberRole({
+      documentId: req.params.id,
+      ownerUserId: req.user.id,
+      memberUserId: req.params.userId,
+      role,
+    });
+    if (result.status === "forbidden") {
+      return res.status(403).json({ ok: false, error: "Owner access required" });
+    }
+    if (result.status === "not-found") {
+      return res.status(404).json({ ok: false, error: "Member not found" });
+    }
+    if (result.status === "owner-immutable") {
+      return res.status(400).json({ ok: false, error: "The owner role cannot be changed" });
+    }
+
+    publishPermissionChange({
+      documentId: req.params.id,
+      userId: req.params.userId,
+      role,
+    });
     const members = await listDocumentMembers(req.params.id);
     return res.json({ ok: true, members });
   } catch (error) {
